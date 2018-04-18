@@ -1,0 +1,384 @@
+---
+title: "Working with Strings"
+author: "Enrique Monta&ntilde;o"
+date: "April 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Strings or Character Vectors
+
+Strings are one of the base data types in R.  In fact, one could argue that a string, or character, is *the* base element R since a character can represent anything unlike a number.  That is the number 1 can be both a string or a number, but the letter 'q' can only be a character.
+
+Let's take a look.
+
+```{r}
+a_string <- "This is a string, or character vector in R."
+
+print(a_string)
+
+typeof(a_string)
+
+length(a_string)
+```
+
+Why is the last command result in 1?
+
+
+
+
+
+
+
+
+
+
+
+
+Beacuse the variable, a_string, is a vector of length 1
+
+
+
+Base R has many functions to manipulate and parse strings.  However, as we have seen with other aspects of the class, RStudio has been working to modernize elements of R, including strings, developing a package called **stringr**, which is a core part of the **tidyverse**.  One of the most important aspects of the development has been to *standardize* the function class by prepending the function with *str_*
+
+For the sake of example, I will show how to use both Base R and stringr calls for some of the basic tasks.
+
+
+So how do we see the length of the *elements* of a character vector?
+
+```{r}
+# base R
+nchar(a_string)
+
+# stringr
+str_length(a_string)
+
+# alternately, but NOT the same
+str_count(a_string)
+```
+
+What all of these functions are doing is counting the number of code points in an element, which generally corresponds to the number of individual characters in a string.
+
+Note that the last function, `str_count()` sounds like the way to count strings, it's actually used to count the **number of matches** of a sub string.  We will talk about that shortly.
+
+
+## Here are some ways to create strings
+
+1. cat / str_c
+
+The `cat()` function concatinates vectors into a single piece.  The `str_c()` function in stringr is a more generic way to accomplish many tasks, including creating a single string.
+
+```{r}
+# a string vector in parts
+s1 <- c("This", "is a", "string", "from different", "parts.")
+print(s1)
+
+# base R
+cat(s1)
+
+# stringr
+str_c(s1)
+
+# wait, that didn't work.
+# we need to tell the function to collapse the vector using a blank space
+str_c(s1, collapse = " ")
+```
+
+We can see that the `str_c()` function requires an added `collapse = " "` argument to create the string we were expecting.  `cat()` also uses a `sep = " "` argument to control separation of elements, but it defaults to an empty space, which is why that worked.
+
+
+```{r}
+cat(s1, sep = "; ")
+```
+
+
+2. paste / str_c
+
+The base R `paste()` function is a vectorized way to construct strings from vectors.  What that means is paste will iterate over all elements of the vector and construct the string from each of the elements. 
+
+```{r}
+# a new 3-element string
+s2 <- c("a", "b", "c")
+# use paste to construct 3 new strings
+paste("Part ", s2, " of: ", length(s2))
+```
+
+We can use `str_c()` in a similar manner.
+
+```{r}
+# use str_c to recreate the same 3 strings
+str_c("Part ", s2, " of: ", length(s2))
+str_c("Part ", s2, " of: ", (1:3))
+```
+
+
+The important distinction to make between `cat()` and `paste()` and the companion stringr using `str_c()` is the outcome being either a *single new string* or a *new vector of strings* from a vector of elements. 
+
+3. sprintf / glue
+
+We can also control where and what is passed to a string more specifically.  `sprintf()` is a C function that is secure in that you can tell the function what to expect using different codes.  If the expected string type is not present, the function will fail.
+
+
+```{r}
+# see the help for more detail on the codes
+help("sprintf")
+# the %s is a placeholder for a string type
+# the %i is a placeholder for an integer (specifically)
+sprintf("Part %s of: %i.", s2, length(s2))
+
+# what happens if we change the codes?
+sprintf("Part %i of: %s.", s2, length(s2))
+
+# why might this work?
+# sprintf("Part %s of: %s.", s2, length(s2))
+```
+
+`sprintf()` is also useful for formatting decimal precision
+
+```{r}
+sprintf("Various precision: %.3f", 1.234567890)
+sprintf("Various precision: %.5f", 1.234567890)
+# the default is 6
+sprintf("Various precision: %f", 1.234567890)
+```
+
+
+Finally, there is the `glue()` that puts it all together.  `glue()` is not specifically part of the stringr package, but is developed by the same people and plays well.  The nice thing about `glue()` is the ability to use *named objects* in the function calls.  That is you pass the actual variable names to the string enclosed in `{}`.
+
+```{r}
+names <- c("Fred", "Ginger")
+dance <- c("Ballroom", "Tap")
+
+glue::glue("{names} danced {dance}")
+```
+
+We can also pass functions within the `{}`
+
+```{r}
+
+glue::glue("Next year will be {y + 1}", 
+           y = 2018)
+
+```
+
+
+
+## Special characters!!
+
+There are many elements of strings, particularly punctuations, that are both a string, and also a way to manipulate them.  Double quotes ("") and periods are excellent examples.
+
+```{r}
+string2 <- 'How do I "double quote" in a string?'
+string2
+```
+
+Notice the `\` before the `"` in the print of the string.  This is called *escaping*.  We can use escaping for special characters.  
+
+To see the unescaped result of the string, use `writeLines()`
+
+```{r}
+writeLines(string2)
+```
+
+
+But this becomes complicated when the special character needs to be escaped!
+
+What?!
+
+If you want to escape a `\` then you have to add a second `\` to make it work.
+
+```{r}
+# throws an error
+string3 <- "How do I escape a \?"
+
+# we need to add a second \
+string3 <- "How do I escape a \\?"
+string3
+# what does the string look like?
+writeLines(string3)
+```
+
+This gets complicated when we get to regex when characters like `.` and `?` become reserved for searching.  More on that later.  For the moment, just remember that using special characters requires doubling the `\\`.
+
+Some other useful special characters:
+
+- \n = new line
+- \t = tab
+- \s = space
+
+
+```{r}
+# make a string in two lines
+# we have to use writeLines to see the result
+writeLines(str_c("The first line\n", "later continues on a new line"))
+```
+
+
+## Let's look at a few ways to manipulate strings
+
+Some of the most common tasks in string manipulation is splitting and subsetting.  Consider a .csv file is simply a long string separated by commas.  We split the string on the comma and put the pieces into a form that we want.  A simple example:
+
+```{r}
+# create a string to split 
+comma_list <- "A long, list, of, elements, that I , want to, split"
+
+# results in a list
+str_split(comma_list, pattern = ",")
+
+# results in a matrix
+str_split(comma_list, ",", simplify = TRUE)
+
+# limit the number of results
+str_split(comma_list, ",", n = 3)
+```
+
+Many of the results from the str_* family of functions result in a list because the tidyverse uses those singular results to construct tibbles, so some of these might not be what you expect.  Base R does the same thing.
+
+```{r}
+# a base R string split
+strsplit(comma_list, split = ",")
+```
+
+We might also be interested in just the nth elements of a string.  For example, we can extract the file extension from a vector of files.
+
+```{r}
+# a list of files
+file_vector <- c("somepic.jpg", "somedata.csv", "anote.txt")
+
+# use a negative index to get the last 4 characters
+str_sub(file_vector, start = -4)
+
+# we can also extract between indices
+str_sub(file_vector, start = 2, end = 4)
+```
+
+We can also change the case of characters in a string.
+
+```{r}
+# lower case
+str_to_lower("AN ALL LOWER STRING")
+
+# upper case
+str_to_upper("an all cap string")
+
+# stringr also makes titles!
+str_to_title("this should be a title")
+```
+
+We can add or extract extra white space
+
+```{r}
+string4 <- " A string with extra white space "
+string4
+
+# trim all outside white space
+str_trim(string4)
+
+# trim just the left
+str_trim(string4, side = "left")
+
+# trim just the right
+str_trim(string4, side = "right")
+
+# If we need to pad a string with space
+str_pad("string5", width = 10, side = "left")
+```
+
+Another nice feature of stringr is the ability to sort strings
+
+```{r}
+mixed_list <- c("x", "a", "t", "q")
+# sort ascending
+str_sort(mixed_list)
+
+# sort descending
+str_sort(mixed_list, decreasing = TRUE)
+
+# use str_order to find the corresponding index
+str_order(mixed_list)
+```
+
+Many of the stringr functions return the index of the result rather than the data, which is helpful when you want to manipulate something else with the index.
+
+
+## regex
+
+Also known as Regular Expressions, is a powerful means to find explicit portions of a string.  All strings in stringr are treated as regular expressions, but you can expect many base R string functions to do the same.  Therefore, it is best practice to treat all special character (above) as special and escape them as appropriate.  regex is a very complex language that I cannot fully cover.  There are two cheetsheets in the project directory for reference.
+
+Let's look at how regex works.  Regex uses a series of special character strings to find a query other strings.  The special characters are elements like: `?, *, [], ., !`, which can lead to confusion when looking at strings.
+
+Regular expressions are a language used to find patterns in strings.  We can use various functions in stringr to find parts of a string and extract or manipulate them.
+
+
+
+```{r}
+string5 <- "This is the 5th, of many, strings in this exercise!"
+
+# find the word string in our sentence
+# we can use detect to see if the word is present
+str_detect(string5, pattern = "string")
+
+# where is it
+str_locate(string5, "string")
+
+# now extract it
+str_extract(string5, pattern = "string")
+
+# we can use regex to find specific parts of the string
+# [] can be used to find specific elements, vowels for instance
+str_extract(string5, pattern = "[aeiou]")
+
+# why didn't that find all of them?
+
+```
+
+By design, many of the `stringr` functions only return the first match.  We use the companion functions, `str_*_all()`, to find all the matches.
+
+```{r}
+# find all the vowels
+str_extract_all(string5, pattern = "[aeiou]")
+
+# we can find letters surrounded by other characters
+# the period matches any character (except an actual .)
+str_extract_all(string5, pattern = ".e.")
+
+# there are convenience structures for common types
+# digits
+str_extract(string5, pattern = "[:digit:]")
+
+# punctuation
+str_extract_all(string5, pattern = "[:punct:]")
+
+# we can find boundaries between words
+str_locate_all(string5, pattern = "\\b")
+
+# locate several letters using | as an "or"" operator
+str_extract_all(string5, pattern = "[s|y]")
+
+# negate the search to find everything except
+str_extract_all(string5, pattern = "[^s|y]")
+
+# use anchors to find elements at the beginning or end of a string
+str_extract(string5, pattern = "\\!$")
+str_locate(string5, pattern = "\\!$")
+
+```
+
+Hopefully, you can start to see the potential for regex.  The queries become quite complex, but very specific for finding postions of strings that match specific criteria.
+
+```{r}
+# now find the is that is not part of a word
+str_locate_all(string5, pattern = "is")
+str_extract_all(string5, pattern = "\\bis\\b")
+
+# we can also define a repetition to locate
+# find the a's that repeat 3 times
+str_extract_all("a.aa.aaa.aaaa", pattern = "a{3}")
+```
+
+Now let's look at a working example.
+

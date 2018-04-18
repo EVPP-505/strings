@@ -1,0 +1,102 @@
+---
+title: "Compare File Lists Example"
+output: html_notebook
+---
+
+```{r libraries}
+library(tidyverse)
+```
+
+
+This notebook illustrates how to use regular expressions (regex) to find portions of a string.  For this example, we have two directories with files from different, but related analyses.  We want to match the related files from each directory for further analysis.  We are interested in finding portions of a sting between two boundaries in this case.
+
+The first step is to set up the file paths to the two directories we want to work with.  The `file.path()` function is a convenience function that takes a list of comma-separated strings to build a valid file path; i.e. it will collapse the strings into a slash-separated path without spaces.  The `file.path()` function is from base R and is platform independent, so there is no need to worry about the direction of the slash.  
+
+```{r file-paths}
+# create file paths for each directory
+# we are building a file path relative to our project (working) directory
+# we can use the getwd() function to fill in project directory
+trees_dir <- file.path(getwd(), "trees")
+aln_dir <- file.path(getwd(), "alignments")
+
+trees_dir
+aln_dir
+```
+
+### Why are we building full paths?
+
+We generally don't need to worry about building full paths when we work in an RStudio project.  Most of the functions we use, particularly in the `tidyverse`, use paths relative to the project directory.  However, some base R functions, specifically those related to file system operations, require full, valid file paths to operate.  Building a valid file path can be important if you are working with multiple directories across a file system.  *BUT, having project files all over your computer is bad form, and violates the principle of reproducibility; other users will not have the same file structure*  I am simply introducing the `file.path()` function for reference.
+
+We need a list of files in each directory.  For this we use the base R function, `list.files()`.  The main argument for `list.files()` is a full directory path to search.  We can also add a pattern to search.  One of the most useful patterns is a file extension.
+
+```{r list-files}
+# build a list of the files from each directory
+# the tree files have a .tre extension
+trees_files <- list.files(path= "/trees", pattern="*tre")
+
+# list.files doesn't use relative paths, so use the full path we built above.
+trees_files <- list.files(path = trees_dir, pattern = "*tre")
+
+# the alignment files have a .fasta extension
+aln_files <- list.files(path = aln_dir, pattern="*fasta")
+
+trees_files
+aln_files
+```
+
+We can see that the files from the different directories have similar properties we can extract for comparison.  For this we will use *Regular Expressions* or *regex* as its known.  See the strings-in-r notebook for more information.
+
+The files share the string, Assembly_carttincxEL, and add in a sequence number and file extension, e.g. 411208.fasta.  Note, however, that the file extension .fasta is partially captured in the name of the tree file, fast.tre.  We need to extract the full portion of interest for comparison.
+
+We want the portion after the `_` but before the first `.`
+
+```{r build-regex}
+# this is the regex to find the portion of the files names we want
+r <- "(?<=_)[a-zA-Z0-9]+(?=\\.)"
+```
+
+Break it down:
+
+- `(?<=_)` is what's called a lookbehind.  This looks for everything up to (or behind) the `_`
+-  `[a-zA-Z0-9]+` the letters and numbers in the [] tell the expression to look for any alphanumeric character
+- the `+` is to match this one or more times
+- `(?=\\.)` is a lookahead, which looks for everything after the first .
+
+```{r matches}
+
+# together this expression looks for any character after the _ one or more times until it reaches the .
+# we can see the matches using the function regmatches
+matches <- str_match(trees_files, r)
+matches
+```
+
+Let's combine some skills to find the matching files between directories.  For this example, let's build a loop to find the matching files one at a time.
+
+```{r loop-matches}
+# now that we have a vector of unique file identifiers, try looping over the vector
+# and extract the matching files from each list.
+
+for (m in matches){
+  # create a note to separate the results
+  writeLines(str_c("Matches for: ", m))
+  
+  #use []-notation indexing to extract the matching file names from each list
+  tree <- trees_files[str_detect(trees_files, m)]
+  aln <- aln_files[str_detect(aln_files, m)]
+  
+  # build the file paths
+  writeLines(file.path(trees_dir, tree))
+  writeLines(file.path(aln_dir, aln))
+  
+  #----------------
+  # do more processing on the paired files
+}
+
+```
+
+
+
+
+
+
+
